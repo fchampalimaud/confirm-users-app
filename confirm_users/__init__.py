@@ -1,0 +1,1 @@
+default_app_config = 'confirm_users.app.ConfirmUsersConfig'
