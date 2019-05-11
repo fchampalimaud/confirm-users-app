@@ -6,7 +6,7 @@ from pyforms.controls import ControlQueryList
 from confapp import conf
 from pyforms_web.organizers import no_columns
 from notifications.tools import notify
-
+from django.db.models.expressions import RawSQL
 
 class Dashboard(BaseWidget):
 
@@ -29,7 +29,7 @@ class Dashboard(BaseWidget):
         super().__init__(*args, **kwargs)
 
         self._label = ControlLabel('These users are pending your authorization to access the database', css='orange')
-        self._list = ControlQueryList(field_css='wide seven', list_display=['username', 'email'], headers=['Username', 'Email'])
+        self._list = ControlQueryList(field_css='wide seven', list_display=['username', 'email', 'email_confirmed'], headers=['Username', 'Email', 'Email confirmed'])
         self._accept = ControlButton('Accept user', label_visible=False, css='green', visible=False, default=self.__accept_evt)
         self._reject = ControlButton('Reject user', label_visible=False, css='red', visible=False, default=self.__reject_evt)
 
@@ -43,9 +43,17 @@ class Dashboard(BaseWidget):
         self.populate_users_list()
 
 
+
     def populate_users_list(self):
         queryset = User.objects.filter(is_active=False)
+
         if queryset.exists():
+            queryset = queryset.annotate(
+                email_confirmed = RawSQL(
+                    "SELECT verified FROM account_emailaddress where user_id=auth_user.id and email=auth_user.email", []
+                )
+            )
+
             self._list.value = queryset
             self._label.show()
         else:
