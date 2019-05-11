@@ -4,21 +4,22 @@ from pyforms.controls import ControlLabel
 from pyforms.controls import ControlButton
 from pyforms.controls import ControlQueryList
 from confapp import conf
-from pyforms_web.organizers import segment, no_columns
+from pyforms_web.organizers import no_columns
+from notifications.tools import notify
 
 
 class Dashboard(BaseWidget):
 
     UID = 'dashboard-app'
-    TITLE = 'Dashboard'
+    TITLE = 'New users requests'
 
     ########################################################
     #### ORQUESTRA CONFIGURATION ###########################
     ########################################################
     LAYOUT_POSITION      = conf.ORQUESTRA_HOME
-    ORQUESTRA_MENU       = 'left'
+    ORQUESTRA_MENU       = 'middle-left'
     ORQUESTRA_MENU_ICON  = 'clipboard outline'
-    ORQUESTRA_MENU_ORDER = 0
+    ORQUESTRA_MENU_ORDER = 10
     ########################################################
 
 
@@ -75,11 +76,27 @@ class Dashboard(BaseWidget):
         self._reject.hide()
         self._accept.hide()
 
+        notify(
+            'USER_HAS_BEEN_APPROVED',
+            f'Your user was approved',
+            f'Your user {user.username} with the email {user.email}, access was approved. You can now access the database.',
+            user=user
+        )
+
     def __reject_evt(self):
         user_id = self._list.selected_row_id
         user = User.objects.get(pk=user_id)
-        user.delete()
+
 
         self.populate_users_list()
         self._reject.hide()
         self._accept.hide()
+
+        notify(
+            'USER_HAS_BEEN_REJECTED',
+            f'Your user {user.username} access was rejected',
+            f'Your user {user.username} with the email {user.email}, access was rejected and removed.',
+            user=user
+        )
+
+        user.delete()
