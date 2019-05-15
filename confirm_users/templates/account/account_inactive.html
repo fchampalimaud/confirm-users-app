@@ -1,18 +1,17 @@
-{% extends "account/base.html" %}
-
+{% extends "account/account_inactive.html" %}
 {% load i18n %}
-
-{% block head_title %}{% trans "Account waiting approval" %}{% endblock %}
-
-{% block content %}
-
-    <div class="ui middle aligned center aligned basic segment">
-
-        <h1>{% trans "Your account is waiting approval" %}</h1>
-
-        <p>
-            {% trans "A message was sent to the administrators to validate your user. You will be notified soon they accept our reject your access." %}
-        </p>
+{% block extra %}
+<div class="ui left aligned grid">
+  <div class="column">
+    <div class="ui info icon message">
+      <i class="info circle icon"></i>
+      <div class="content">
+        <div class="header">
+          {% trans "Your account may be pending approval" %}
+        </div>
+        <p>{% trans "If you just registered, we will notify you as soon as we validate your account." %}</p>
+      </div>
     </div>
-
+  </div>
+</div>
 {% endblock %}
