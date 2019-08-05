@@ -1,6 +1,7 @@
 from confapp import conf
 from django.contrib.auth import get_user_model
 from django.db.models.expressions import RawSQL
+from django.db.models.expressions import F
 from pyforms.basewidget import BaseWidget
 from pyforms.controls import ControlLabel
 from pyforms.controls import ControlButton
@@ -52,11 +53,7 @@ class Dashboard(BaseWidget):
         queryset = User.objects.filter(is_active=False)
 
         if queryset.exists():
-            queryset = queryset.annotate(
-                email_confirmed = RawSQL(
-                    "SELECT verified FROM account_emailaddress where user_id=auth_user.id and email=auth_user.email", []
-                )
-            )
+            queryset = queryset.annotate(email_confirmed=F("emailaddress__verified"))
 
             self._list.value = queryset
             self._label.show()
