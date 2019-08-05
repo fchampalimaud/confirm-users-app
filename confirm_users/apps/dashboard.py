@@ -1,12 +1,16 @@
-from django.contrib.auth.models import User
+from confapp import conf
+from django.contrib.auth import get_user_model
+from django.db.models.expressions import RawSQL
 from pyforms.basewidget import BaseWidget
 from pyforms.controls import ControlLabel
 from pyforms.controls import ControlButton
 from pyforms.controls import ControlQueryList
-from confapp import conf
 from pyforms_web.organizers import no_columns
+
 from notifications.tools import notify
-from django.db.models.expressions import RawSQL
+
+User = get_user_model()
+
 
 class Dashboard(BaseWidget):
 

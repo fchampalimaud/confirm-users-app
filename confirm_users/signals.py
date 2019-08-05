@@ -1,11 +1,16 @@
-from django.contrib.auth.models import User
+from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
-from notifications.tools import notify
+
 from allauth.account.signals import email_confirmation_sent
 from allauth.socialaccount.models import SocialAccount
 
-from django.conf import settings
+from notifications.tools import notify
+
+
+User = get_user_model()
+
 
 if not hasattr(settings, 'ACCOUNT_EMAIL_VERIFICATION') or settings.ACCOUNT_EMAIL_VERIFICATION!='mandatory':
 
