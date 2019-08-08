@@ -1,16 +1,19 @@
 from confapp import conf
 from django.contrib.auth import get_user_model
-from django.db.models.expressions import RawSQL
+from django.core.exceptions import ValidationError
 from django.db.models.expressions import F
 from pyforms.basewidget import BaseWidget
 from pyforms.controls import ControlLabel
 from pyforms.controls import ControlButton
 from pyforms.controls import ControlQueryList
-from pyforms_web.organizers import no_columns
 
-from notifications.tools import notify
+from ..utils import import_attribute
+from .. import app_settings
+
 
 User = get_user_model()
+
+UserForm = import_attribute(app_settings.USER_EDIT_FORM)
 
 
 class Dashboard(BaseWidget):
@@ -32,87 +35,130 @@ class Dashboard(BaseWidget):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self._label = ControlLabel(
-            "These users are pending your authorization to access the database",
-            css="orange",
-        )
+        self._label = ControlLabel()
+
         self._list = ControlQueryList(
-            field_css="fourteen wide",
-            list_display=["username", "email", "email_confirmed"],
-            headers=["Username", "Email", "Email confirmed"],
-        )
-        self._accept = ControlButton(
-            "Accept user",
-            label_visible=False,
-            css="green",
-            visible=False,
-            default=self.__accept_evt,
-        )
-        self._reject = ControlButton(
-            "Reject user",
-            label_visible=False,
-            css="red",
-            visible=False,
-            default=self.__reject_evt,
+            list_display=["date_joined", "username", "email", "email_confirmed"],
+            headers=["Date joined", "Username", "Email", "Email verified"],
         )
 
-        self.formset = [" ", "_label", no_columns("_list", "_accept", "_reject")]
+        self._edit_btn_label = '<i class="ui edit icon"></i>Edit'
+        self._approve_btn_label = '<i class="ui check icon"></i>Approve'
+        self._remove_btn_label = '<i class="ui times icon"></i>Remove'
+
+        self._edit = ControlButton(
+            self._edit_btn_label,
+            label_visible=False,
+            css="fluid secondary",
+            visible=False,
+            default=self.__edit_evt,
+        )
+
+        self._approve = ControlButton(
+            self._approve_btn_label,
+            label_visible=False,
+            css="fluid green",
+            visible=False,
+            default=self.__approve_evt,
+        )
+
+        self._remove = ControlButton(
+            self._remove_btn_label,
+            label_visible=False,
+            css="fluid red",
+            field_css="",
+            visible=False,
+            default=self.__remove_evt,
+        )
+
+        self.formset = [" ", "_label", ("_remove", "_edit", "_approve"), "_list"]
+
+        self.__enable_actions()
 
         self._list.item_selection_changed_event = self.__user_selected_evt
+
         self.populate_users_list()
 
     def populate_users_list(self):
         queryset = User.objects.filter(is_active=False)
 
-        if queryset.exists():
-            queryset = queryset.annotate(email_confirmed=F("emailaddress__verified"))
+        self.__update_label(queryset)
 
-            self._list.value = queryset
-            self._label.show()
+        if queryset.exists():
+            self._list.value = queryset.annotate(
+                email_confirmed=F("emailaddress__verified")
+            )
+            self.__show_actions()
+            self.__disable_actions()
         else:
             self._list.hide()
-            self._label.hide()
+            self._edit.hide()
+            self._approve.hide()
+            self._remove.hide()
+
+    def __show_actions(self):
+        self._edit.show()
+        self._approve.show()
+        self._remove.show()
+
+    def __enable_actions(self):
+        self._edit.enabled = True if app_settings.USER_EDIT_FORM else False
+        self._approve.enabled = True
+        self._remove.enabled = True
+
+    def __disable_actions(self):
+        self._edit.enabled = False
+        self._approve.enabled = False
+        self._remove.enabled = False
+
+    def __update_label(self, queryset):
+        if queryset.exists():
+            icon = '<i class="ui info circle icon"></i>'
+            msg = "Users listed below require approval for accessing the database."
+            css = "info"
+        else:
+            icon = '<i class="ui check icon"></i>'
+            msg = "No users waiting account approval."
+            css = "green"
+        self._label.value = icon + msg
+        self._label.css = css
 
     def __user_selected_evt(self):
         user_id = self._list.selected_row_id
         user = User.objects.get(pk=user_id)
 
-        self._accept.label = f"Accept [{user.username}]"
-        self._accept.show()
+        self._edit.label = self._edit_btn_label + f" [{user.username}]"
+        self._approve.label = self._approve_btn_label + f" [{user.username}]"
+        self._remove.label = self._remove_btn_label + f" [{user.username}]"
 
-        self._reject.label = f"Reject [{user.username}]"
-        self._reject.show()
+        self.__enable_actions()
 
-    def __accept_evt(self):
+    def __edit_evt(self):
+        app = UserForm(pk=self._list.selected_row_id)
+        app.LAYOUT_POSITION = conf.ORQUESTRA_NEW_TAB
+
+    def __approve_evt(self):
         user_id = self._list.selected_row_id
         user = User.objects.get(pk=user_id)
         user.is_active = True
+
+        try:
+            user.full_clean()
+        except ValidationError as e:
+            title = "Can not approve user '%s'" % user.username
+            self.alert(e.messages, title=title)
+            return
+
         user.save()
 
         self.populate_users_list()
-        self._reject.hide()
-        self._accept.hide()
+        self.__disable_actions()
 
-        notify(
-            "USER_HAS_BEEN_APPROVED",
-            f"Your user was approved",
-            f"Your user {user.username} with the email {user.email}, access was approved. You can now access the database.",
-            user=user,
-        )
-
-    def __reject_evt(self):
+    def __remove_evt(self):
         user_id = self._list.selected_row_id
         user = User.objects.get(pk=user_id)
 
-        self.populate_users_list()
-        self._reject.hide()
-        self._accept.hide()
-
-        notify(
-            "USER_HAS_BEEN_REJECTED",
-            f"Your user {user.username} access was rejected",
-            f"Your user {user.username} with the email {user.email}, access was rejected and removed.",
-            user=user,
-        )
-
         user.delete()
+
+        self.populate_users_list()
+        self.__disable_actions()

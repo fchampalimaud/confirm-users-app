@@ -11,4 +11,3 @@ class ConfirmUsersConfig(AppConfig):
         from .dashboard import Dashboard
 
         global Dashboard
-

@@ -1,10 +1,13 @@
-from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.db.models.signals import pre_delete
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 
-from allauth.account.signals import email_confirmation_sent
-from allauth.socialaccount.models import SocialAccount
+from allauth.account.models import EmailAddress
+from allauth.account.models import EmailConfirmationHMAC
+from allauth.account.signals import user_signed_up
+from allauth.account.signals import email_confirmed
+from allauth.account.utils import send_email_confirmation
 
 from notifications.tools import notify
 
@@ -12,60 +15,62 @@ from notifications.tools import notify
 User = get_user_model()
 
 
-if not hasattr(settings, 'ACCOUNT_EMAIL_VERIFICATION') or settings.ACCOUNT_EMAIL_VERIFICATION!='mandatory':
+@receiver(user_signed_up, sender=User)
+@receiver(email_confirmed, sender=EmailConfirmationHMAC)
+def notify_superusers_of_new_account(sender, **kwargs):
+    """Sends an email to all superusers alerting for a new account
+    awaiting approval.
+    """
+
+    if sender == User:
+        user = kwargs["user"]
+    else:
+        user = kwargs["email_address"].user
+
+    primary_email = EmailAddress.objects.get_primary(user=user)
+
+    if not user.is_active and primary_email.verified:
+        for su in User.objects.filter(is_superuser=True):
+            notify(
+                "NEW_USER_WAITING_APPROVAL",
+                f"New account awaiting approval",
+                f"An account assotiated with the email {user.email} was created and requires your approval to access the database.",
+                user=su,
+            )
+    else:
+        request = kwargs["request"]
+        send_email_confirmation(request, user)
 
 
-    # set a new user inactive by default
-    @receiver(pre_save, sender=User)
-    def set_new_user_inactive(sender, instance, **kwargs):
-        if instance.pk is None and not instance.is_superuser:
-            instance.is_active = False
+@receiver(pre_save, sender=User)
+def notify_user_activated(sender, instance, **kwargs):
+    """Notifies a user whose account has been activated."""
 
-            for u in User.objects.filter(is_superuser=True):
-
+    try:
+        obj = sender.objects.get(pk=instance.pk)
+    except sender.DoesNotExist:
+        pass  # do nothing on user creation
+    else:
+        if instance.is_active and obj.is_active != instance.is_active:
+            email = EmailAddress.objects.get_primary(user=instance)
+            if email is not None and email.verified:
                 notify(
-                    'USER_WAITING_APPROVAL',
-                    f'The new user {instance.username} requires your approval for access',
-                    f'The new user {instance.username} with the email {instance.email}, requires your approval for access.',
-                    user=u
+                    code="USER_APPROVED",
+                    title="Access Granted",
+                    text=f"The account associated with the e-mail {instance.email} was approved. You may now access the database.",
+                    user=instance,
                 )
 
 
-else:
+@receiver(pre_delete, sender=User)
+def notify_user_removed(sender, instance, **kwargs):
+    """Notifies a user whose account has been removed."""
 
-    def set_new_user_inactive_account(request, confirmation, signup, **kwargs):
-        email_address = confirmation.email_address
-        instance = email_address.user
-
-        if email_address.verified==False and not instance.is_superuser:
-            instance.is_active = False
-            instance.save()
-
-            for u in User.objects.filter(is_superuser=True):
-
-                notify(
-                    'USER_WAITING_APPROVAL',
-                    f'The new user {instance.username} requires your approval for access',
-                    f'The new user {instance.username} with the email {instance.email}, requires your approval for access.',
-                    user=u
-                )
-
-    email_confirmation_sent.connect(set_new_user_inactive_account)
-
-    @receiver(pre_save, sender=SocialAccount)
-    def set_new_user_inactive_socialaccount(sender, instance, **kwargs):
-
-        if instance.pk is None:
-            user = instance.user
-            user.is_active = False
-            user.save()
-
-            for u in User.objects.filter(is_superuser=True):
-
-                notify(
-                    'USER_WAITING_APPROVAL',
-                    f'The new user {user.username} requires your approval for access',
-                    f'The new user {user.username} with the email {user.email}, requires your approval for access.',
-                    user=u
-                )
-
+    email = EmailAddress.objects.get_primary(user=instance)
+    if email is not None and email.verified:
+        notify(
+            code="USER_REMOVED",
+            title="Access revoked",
+            text=f"The account associated with the e-mail {instance.email} was removed.",
+            user=instance,
+        )
