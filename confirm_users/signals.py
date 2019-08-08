@@ -7,7 +7,6 @@ from allauth.account.models import EmailAddress
 from allauth.account.models import EmailConfirmationHMAC
 from allauth.account.signals import user_signed_up
 from allauth.account.signals import email_confirmed
-from allauth.account.utils import send_email_confirmation
 
 from notifications.tools import notify
 
@@ -37,9 +36,6 @@ def notify_superusers_of_new_account(sender, **kwargs):
                 f"An account assotiated with the email {user.email} was created and requires your approval to access the database.",
                 user=su,
             )
-    else:
-        request = kwargs["request"]
-        send_email_confirmation(request, user)
 
 
 @receiver(pre_save, sender=User)
