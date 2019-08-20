@@ -1,0 +1,3 @@
+include README.rst
+recursive-include confirm_users/static *
+recursive-include confirm_users/templates *

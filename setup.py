@@ -34,9 +34,4 @@ setup(
     include_package_data=True,
     install_requires=["django>2.1.0", "django-allauth", "notifications-central"],
     extras_require={"dev": ["black==19.3b0"]},
-    package_data={
-        "confirm_users": os.path.join(
-            "confirm_users", "templates", "account", "account_inactive.html"
-        )
-    },
 )
