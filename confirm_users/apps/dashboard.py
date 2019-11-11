@@ -101,10 +101,20 @@ class Dashboard(BaseWidget):
         self._approve.show()
         self._remove.show()
 
-    def __enable_actions(self):
-        self._edit.enabled = True if app_settings.USER_EDIT_FORM else False
-        self._approve.enabled = True
-        self._remove.enabled = True
+    def __enable_actions(self, user=None):
+        if user:
+            try:
+                user.full_clean()
+            except ValidationError:
+                user_is_valid = False
+            else:
+                user_is_valid = True
+
+            self._edit.enabled = True if app_settings.USER_EDIT_FORM else False
+            self._approve.enabled = user_is_valid
+            self._remove.enabled = True
+        else:
+            self.__disable_actions()
 
     def __disable_actions(self):
         self._edit.enabled = False
@@ -131,7 +141,7 @@ class Dashboard(BaseWidget):
         self._approve.label = self._approve_btn_label + f" [{user.username}]"
         self._remove.label = self._remove_btn_label + f" [{user.username}]"
 
-        self.__enable_actions()
+        self.__enable_actions(user=user)
 
     def __edit_evt(self):
         app = UserForm(pk=self._list.selected_row_id)
