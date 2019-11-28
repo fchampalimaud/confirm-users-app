@@ -9,7 +9,9 @@ from allauth.account.signals import user_signed_up
 from allauth.account.signals import email_confirmed
 
 from notifications.tools import notify
-
+# FIXME decouple this from the notifications plugin
+# user management does not need to spam in-app notifications
+# just send an email to those who need to take action
 
 User = get_user_model()
 
@@ -20,6 +22,8 @@ def notify_superusers_of_new_account(sender, **kwargs):
     """Sends an email to all superusers alerting for a new account
     awaiting approval.
     """
+
+    # TODO alert platform managers also
 
     if sender == User:
         user = kwargs["user"]
