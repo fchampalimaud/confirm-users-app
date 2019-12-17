@@ -1,15 +1,15 @@
 
-# Created by https://www.gitignore.io/api/django,sublimetext
-# Edit at https://www.gitignore.io/?templates=django,sublimetext
-.idea/
+# Created by https://www.gitignore.io/api/python,django,virtualenv,sublimetext,visualstudiocode
+# Edit at https://www.gitignore.io/?templates=python,django,virtualenv,sublimetext,visualstudiocode
 
 ### Django ###
 *.log
 *.pot
 *.pyc
 __pycache__/
-# local_settings.py
+local_settings.py
 db.sqlite3
+db.sqlite3-journal
 media
 
 # If your build process includes running collectstatic, then you probably don't need or want to include staticfiles/
@@ -71,12 +71,6 @@ coverage.xml
 # Translations
 *.mo
 
-# Django stuff:
-
-# Flask stuff:
-instance/
-.webassets-cache
-
 # Scrapy stuff:
 .scrapy
 
@@ -86,15 +80,15 @@ docs/_build/
 # PyBuilder
 target/
 
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# IPython
-profile_default/
-ipython_config.py
-
 # pyenv
 .python-version
+
+# pipenv
+#   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
+#   However, in case of collaboration, if having platform-specific dependencies or dependencies
+#   having no cross-platform support, pipenv may install dependencies that don't work, or not
+#   install all needed dependencies.
+#Pipfile.lock
 
 # celery beat schedule file
 celerybeat-schedule
@@ -102,21 +96,17 @@ celerybeat-schedule
 # SageMath parsed files
 *.sage.py
 
-# Environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
-
 # Spyder project settings
 .spyderproject
 .spyproject
 
 # Rope project settings
 .ropeproject
+
+# Mr Developer
+.mr.developer.cfg
+.project
+.pydevproject
 
 # mkdocs documentation
 /site
@@ -161,7 +151,37 @@ bh_unicode_properties.cache
 # https://packagecontrol.io/packages/sublime-github
 GitHub.sublime-settings
 
-# End of https://www.gitignore.io/api/django,sublimetext
+### VirtualEnv ###
+# Virtualenv
+# http://iamzed.com/2009/05/07/a-primer-on-virtualenv/
+[Bb]in
+[Ii]nclude
+[Ll]ib
+[Ll]ib64
+[Ll]ocal
+[Ss]cripts
+pyvenv.cfg
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+pip-selfcheck.json
+
+### VisualStudioCode ###
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+### VisualStudioCode Patch ###
+# Ignore all local history of files
+.history
+
+# End of https://www.gitignore.io/api/python,django,virtualenv,sublimetext,visualstudiocode
 
 # PyForms auto generated files
 apps-cache/
