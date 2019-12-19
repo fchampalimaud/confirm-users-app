@@ -1,0 +1,13 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[packages]
+confirm-users = {editable = true,path = "."}
+
+[dev-packages]
+black = "==19.10b0"
+
+[requires]
+python_version = "3.7"
