@@ -32,6 +32,7 @@ setup(
     keywords="django pyforms-web",
     packages=find_packages(exclude=["contrib", "docs", "tests"]),
     include_package_data=True,
-    install_requires=["django>2.1.0", "django-allauth", "django-notifications-hq>=1.5", "notifications-central"],
+    # FIXME missing pyforms dependency
+    install_requires=["django>2.1.0", "django-allauth"],
     extras_require={"dev": ["black==19.3b0"]},
 )

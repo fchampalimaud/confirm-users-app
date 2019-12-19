@@ -1,4 +1,6 @@
+from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.mail import send_mail
 from django.db.models.signals import pre_delete
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
@@ -7,11 +9,6 @@ from allauth.account.models import EmailAddress
 from allauth.account.models import EmailConfirmationHMAC
 from allauth.account.signals import user_signed_up
 from allauth.account.signals import email_confirmed
-
-from notifications.tools import notify
-# FIXME decouple this from the notifications plugin
-# user management does not need to spam in-app notifications
-# just send an email to those who need to take action
 
 User = get_user_model()
 
@@ -34,13 +31,12 @@ def notify_superusers_of_new_account(sender, **kwargs):
 
     if not user.is_active and primary_email.verified:
         for su in User.objects.filter(is_superuser=True):
-            notify(
-                "NEW_USER_WAITING_APPROVAL",
-                f"New account awaiting approval",
-                f"An account assotiated with the email {user.email} was created and requires your approval to access the database.",
-                user=su,
+            send_mail(
+                subject="New account awaiting approval",
+                message=f"An account associated with the email {user.email} was created and requires your approval to access the web page.",
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[su.email],
             )
-
 
 @receiver(pre_save, sender=User)
 def notify_user_activated(sender, instance, **kwargs):
@@ -54,11 +50,11 @@ def notify_user_activated(sender, instance, **kwargs):
         if instance.is_active and obj.is_active != instance.is_active:
             email = EmailAddress.objects.get_primary(user=instance)
             if email is not None and email.verified:
-                notify(
-                    code="USER_APPROVED",
-                    title="Access Granted",
-                    text=f"The account associated with the e-mail {instance.email} was approved. You may now access the database.",
-                    user=instance,
+                send_mail(
+                    subject="Access Granted",
+                    message=f"The account associated with the e-mail {instance.email} was approved.",
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[instance.email],
                 )
 
 
@@ -68,9 +64,9 @@ def notify_user_removed(sender, instance, **kwargs):
 
     email = EmailAddress.objects.get_primary(user=instance)
     if email is not None and email.verified:
-        notify(
-            code="USER_REMOVED",
-            title="Access revoked",
-            text=f"The account associated with the e-mail {instance.email} was removed.",
-            user=instance,
+        send_mail(
+            subject="Access Revoked",
+            message=f"The account associated with the e-mail {instance.email} was removed.",
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[instance.email],
         )
