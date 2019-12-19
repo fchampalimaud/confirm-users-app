@@ -10,7 +10,7 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
     name="confirm_users",
-    version="0.0",
+    version="0.1",
     description="confirm auto registered users app",
     long_description=README,
     long_description_content_type="text/markdown",
